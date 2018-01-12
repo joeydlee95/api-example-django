@@ -1,0 +1,21 @@
+{% block content %}
+  <h2>Patient Page</h2>
+  <a href="{% url 'home' %}">Go Back</a>
+  <table style="width:100%">
+    <tr>
+      <th>Firstname</th>
+      <th>Lastname</th>
+      <th>Date of Birthday</th>
+    </tr>
+    
+    {% for patient in patients %}
+      <tr>
+        <th>{{ patient.first_name }}</th>
+        <th>{{ patient.last_name }}</th>
+        <th>{{ patient.date_of_birth }}</th>
+      </tr>
+    {% endfor %}
+ 
+  </table>
+
+{% endblock %}

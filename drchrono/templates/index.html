@@ -1,5 +1,9 @@
 {% block content %}
   <h2>Homepage</h2>
-  <p>Hello {{ username }}!</p>
+
+  {% if is_doctor %}
+  <p>Hello, {{ username }}</p>
+  <a href="{% url 'patients' %}">View Patients</a>
+  {% endif %}
   <a href="{% url 'logout'  %}">Logout</a>
 {% endblock %}
