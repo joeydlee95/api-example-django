@@ -1,0 +1,18 @@
+{% load drchrono_extras %}
+{% block content %}
+  <h2>Schedule</h2>
+  <p>Hello Doctor!</p>
+
+  
+  <ul>
+  {% for appointment in appointments %}
+      <li>Patient's Name: {{ appointment.full_name }} </li>
+      <li>Schedule Time: {{ appointment.scheduled_time|timestamp_to_time|date:"Y-m-d H:i" }}</li>
+      <li>Exam Room: {{ appointment.exam_room }}</li>
+      <li>Duration: {{ appointment.duration }} minutes</li>
+      <br>
+  {% endfor %}
+  </ul>
+
+  <a href="{% url 'home'  %}">Log Out</a>
+{% endblock %}

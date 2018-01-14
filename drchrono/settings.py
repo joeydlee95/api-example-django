@@ -97,7 +97,7 @@ DATABASES = {
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Los_Angeles'
 
 USE_I18N = True
 
@@ -121,3 +121,4 @@ LOGIN_REDIRECT_URL = 'http://localhost:8000/'
 
 # Global Constants
 MAX_NAME_LENGTH = 30
+MAX_ID_LENGTH = 10
