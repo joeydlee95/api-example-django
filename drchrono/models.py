@@ -13,7 +13,6 @@ class Doctor(models.Model):
   first_name = models.CharField(max_length=MAX_NAME_LENGTH)
 
 class Patient(models.Model):
-  date_lastupdated = models.DateField(auto_now=True)
   last_name = models.CharField(max_length=MAX_NAME_LENGTH)
   first_name = models.CharField(max_length=MAX_NAME_LENGTH)
   dob = models.DateField()
