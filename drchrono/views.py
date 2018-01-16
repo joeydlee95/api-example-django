@@ -3,11 +3,20 @@ from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.template import Context
 from django.template.context_processors import csrf
+from django.utils import timezone
 
 import requests
-from datetime import date
+import datetime
 from .forms import PatientForm, DoctorForm
+from .models import Patient, Appointment
+from django.conf import settings
 
+# celery for async
+
+def convert_timestamp_to_time(timestamp):
+   date = datetime.datetime.strptime( timestamp, "%Y-%m-%dT%H:%M:%S")
+   return timezone.make_aware(date)
+   
 
 @login_required(login_url='/login/')
 def home(request):
@@ -20,6 +29,84 @@ def logout(request):
   auth_logout(request)
   return redirect(home)
 
+def get_authorization(request):
+  social = request.user.social_auth.get(provider='drchrono')
+  access_token = social.extra_data['access_token']
+  return 'Bearer %s' % access_token
+
+def get_patient_id(request, first_name, last_name):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+  params = {
+    'first_name': first_name,
+    'last_name': last_name,
+  }
+
+  url = 'https://drchrono.com/api/patients_summary'
+  response = requests.get(url, headers=headers, params=params)
+  if response.status_code == requests.codes.ok:
+    data = response.json()
+    appointments = data['results']
+    if appointments[0]['id']:
+      return appointments[0]['id']
+  return None
+
+def get_appointment_id(request, patient_id):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+  date_today = datetime.date.today().isoformat()
+  params = {
+    'date': date_today,
+    'patient': patient_id,
+  }
+  url = 'https://drchrono.com/api/appointments'
+  response = requests.get(url, headers=headers, params=params)
+  if response.status_code == requests.codes.ok:
+    data = response.json()
+    appointments = data['results']
+    for appointment in appointments:
+      if appointment['patient'] == patient_id:
+        return appointment['id']
+  return None
+
+
+def update_arrived(request, appointment_id):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+  date_today = datetime.date.today().isoformat()
+
+  data = {
+    'status': 'Arrived',
+  }
+  url = 'https://drchrono.com/api/appointments/' + appointment_id
+  response = requests.patch(url, headers=headers, data=data)
+  response.raise_for_status()
+
+  try:
+    appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
+    appointment_entry.status = 'Arrived'
+    appointment_entry.save()
+  except:
+    print('appointment object has not been created')
+
+  return
+
+def check_doctor_id(request, doctor_id):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+
+  url = 'https://drchrono.com/api/users/current'
+  response = requests.get(url, headers=headers)
+  if response.status_code == requests.codes.ok:
+    response_doctor_id = response.json()['doctor']
+    if doctor_id == str(response_doctor_id):
+      return True
+
+  return False
 
 @login_required(login_url='/login/')
 def patient_signin(request):
@@ -28,6 +115,19 @@ def patient_signin(request):
     if form.is_valid():
       first_name = form.cleaned_data['first_name']
       last_name = form.cleaned_data['last_name']
+      patient_id = get_patient_id(request, first_name, last_name)
+      appointment_id = get_appointment_id(request, patient_id)
+
+      if patient_id == None or appointment_id == None:
+        return redirect(home)
+
+      patient = Patient(first_name=first_name,
+                        last_name=last_name, 
+                        patient_id=patient_id,
+                        appointment_id=appointment_id)
+
+      # update demographic
+      update_arrived(request, patient.appointment_id)
       return redirect(thanks)
   else:
     form = PatientForm()
@@ -41,58 +141,84 @@ def doctor_signin(request):
   if request.method == 'POST':
     form = DoctorForm(request.POST)
     if form.is_valid():
-      userid = form.cleaned_data['userid']
-      return redirect(doctor_schedule)
+      doctor_id = form.cleaned_data['userid']
+      if check_doctor_id(request, doctor_id):
+        return redirect(doctor_schedule, doctor_id=doctor_id)
+      else:
+        return redirect(doctor_signin)
   else:
     form = DoctorForm()
   
   context = Context({ 'form': form })
   context.update(csrf(request))
   return render(request, 'doctor.html', context)
-  # need to have doctor signin with another identification
 
-@login_required(login_url='/login/')
-def doctor_schedule(request):
-  social = request.user.social_auth.get(provider='drchrono')
-  access_token = social.extra_data['access_token']
-
-  authorization = 'Bearer %s' % access_token
-  date_today = date.today().isoformat()
+def create_appointment(request, appointment):
+  date_appointment = datetime.date.today().isoformat()
+  scheduled_time = convert_timestamp_to_time(appointment['scheduled_time'])
+  exam_room = appointment['exam_room']
+  duration = appointment['duration']
+  patient_id = appointment['patient']
+  status = appointment['status']
+  appointment_id = appointment['id']
 
   headers = {
-    'Authorization': authorization,
+    'Authorization': get_authorization(request),
   }
 
+  url = 'https://drchrono.com/api/patients_summary/' + str(patient_id)
+  response = requests.get(url, headers=headers)
+  response.raise_for_status()
+  data = response.json()
+  patient = data
+
+  patient_last_name = patient['last_name']
+  patient_first_name = patient['first_name']
+  appointment_entry = Appointment.objects.create(date_appointment=date_appointment,
+                                                 scheduled_time=scheduled_time,
+                                                 exam_room=exam_room,
+                                                 duration=duration,
+                                                 patient_id=patient_id,
+                                                 patient_first_name=patient_first_name,
+                                                 patient_last_name=patient_last_name,
+                                                 status=status,
+                                                 appointment_id=appointment_id)
+
+
+@login_required(login_url='/login/')
+# TODO: Also ensure you can't access this unless you typed in id
+def doctor_schedule(request, doctor_id):
+  date_today = datetime.date.today().isoformat()
+
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+
+  # TODO: must disable auto suggestions
   params = {
     'date': date_today,
-    'doctor': '203468', #hardcoded for now
+    'doctor': doctor_id, #203468
   }
 
-  response = requests.get('https://drchrono.com/api/appointments', headers=headers, params=params)
+  url = 'https://drchrono.com/api/appointments'
+  response = requests.get(url, headers=headers, params=params)
 
   response.raise_for_status()
   data = response.json()
   appointments = data['results']
 
-  params2 = {
-    'doctor': '203468',
-  }
-
-  patients = []
-  patients_url = 'https://drchrono.com/api/patients_summary'
-  while patients_url:
-      data = requests.get(patients_url, headers=headers, params=params2).json()
-      patients.extend(data['results'])
-      patients_url = data['next'] # A JSON null on the last page
-
   for appointment in appointments:
-    for patient in patients:
-      if appointment['patient'] == patient['id']:
-        appointment['full_name'] = patient['first_name'] + ' ' + patient['last_name']
+    if appointment['patient']:
+      # check if there is already same appointment
+      try:
+        appointment_entry = Appointment.objects.get(appointment_id=appointment['id'])
+        # update status should happen at patient checkin
+        
+      except Appointment.DoesNotExist:
+        create_appointment(request, appointment)
 
-
-
-  context = Context({ 'appointments' : appointments })
+  context = Context({ 'appointments' : Appointment.objects.all().filter(date_appointment=date_today,
+                                                                        is_archived=False,) })
 
   # query patient with id: 71162354
   # make time into viewable time: 2018-01-13T09:00:00

@@ -1,0 +1,8 @@
+{% block content %}
+  <h2>Additional Demographic Information</h2>
+   <form action="/demographic/" method="post">
+      {% csrf_token %}
+      {{ form.as_ul }}
+      <input type="submit" value="Submit" />
+  </form>
+{% endblock %}
