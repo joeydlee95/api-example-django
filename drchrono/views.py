@@ -4,12 +4,15 @@ from django.contrib.auth.decorators import login_required
 from django.template import Context
 from django.template.context_processors import csrf
 from django.utils import timezone
+from django.http import HttpResponse
+from django.http import JsonResponse
 
 import requests
 import datetime
 from .forms import PatientForm, DoctorForm, DemographicForm
 from .models import Patient, Appointment
 from django.conf import settings
+from django.views.decorators.http import require_http_methods
 
 # celery for async
 
@@ -143,6 +146,7 @@ def check_doctor_id(request, doctor_id):
 
   return False
 
+
 @login_required(login_url='/login/')
 def patient_signin(request):
   if request.method == 'POST':
@@ -250,42 +254,75 @@ def create_appointment(request, appointment):
 @login_required(login_url='/login/')
 # TODO: Also ensure you can't access this unless you typed in id
 def doctor_schedule(request, doctor_id):
-  date_today = datetime.date.today().isoformat()
+  if request.method == 'POST':
+    print('entered post')
+    patient_clicked = request.POST.get('appointment_id')
+    response_data = {}
 
-  headers = {
-    'Authorization': get_authorization(request),
-  }
+    print('enters see_patient')
+    try:
+      appointment_entry = Appointment.objects.get(is_currently_seen=True)
+      appointment_entry.is_currently_seen = False
+      appointment_entry.is_archived = True
+      appointment_entry.save()
+      print('clears current seen')
+    except Appointment.DoesNotExist:
+      print('goes in here')
 
-  # TODO: must disable auto suggestions
-  params = {
-    'date': date_today,
-    'doctor': doctor_id, #203468
-  }
+    
+    try:
+      print('attempting current seen')
+      appointment_entry = Appointment.objects.get(appointment_id=patient_clicked)
+      appointment_entry.is_currently_seen = True
+      appointment_entry.save()
+      response_data['results'] = 'Success'
+      print('succeeds current seen')
+    except Appointment.DoesNotExist:
+      response_data['results'] = 'Fail'
+      print('fails current seen')
 
-  url = 'https://drchrono.com/api/appointments'
-  response = requests.get(url, headers=headers, params=params)
+    print('returns json dump')
+    return JsonResponse({'success': 'Product created'})
 
-  response.raise_for_status()
-  data = response.json()
-  appointments = data['results']
+  else:
 
-  for appointment in appointments:
-    if appointment['patient']:
-      # check if there is already same appointment
-      try:
-        appointment_entry = Appointment.objects.get(appointment_id=appointment['id'])
-        # update status should happen at patient checkin
-        
-      except Appointment.DoesNotExist:
-        create_appointment(request, appointment)
+    date_today = datetime.date.today().isoformat()
 
-  context = Context({ 'appointments' : Appointment.objects.all().filter(date_appointment=date_today,
+    headers = {
+      'Authorization': get_authorization(request),
+    }
+
+    # TODO: must disable auto suggestions
+    params = {
+      'date': date_today,
+      'doctor': doctor_id, #203468
+    }
+
+    url = 'https://drchrono.com/api/appointments'
+    response = requests.get(url, headers=headers, params=params)
+
+    response.raise_for_status()
+    data = response.json()
+    appointments = data['results']
+
+    for appointment in appointments:
+      if appointment['patient']:
+        # check if there is already same appointment
+        try:
+          appointment_entry = Appointment.objects.get(appointment_id=appointment['id'])
+          # update status should happen at patient checkin
+          
+        except Appointment.DoesNotExist:
+          create_appointment(request, appointment)
+
+    context = Context({ 'appointments' : Appointment.objects.all().filter(date_appointment=date_today,
                                                                         is_archived=False,) })
 
-  # query patient with id: 71162354
-  # make time into viewable time: 2018-01-13T09:00:00
-  return render(request, 'schedule.html', context)
-  
+    # query patient with id: 71162354
+    # make time into viewable time: 2018-01-13T09:00:00
+    context.update(csrf(request))
+    return render(request, 'schedule.html', context)
+    
 
 @login_required(login_url='/login/')
 def thanks(request):

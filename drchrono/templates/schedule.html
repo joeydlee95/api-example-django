@@ -1,6 +1,50 @@
-{% load static %}
-<script src="{% static 'scripts/main.js' %}"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+{% extends 'base.html' %}
+{% csrf_token %}
+{% block javascript %}
+  <script>
+    function seePatient(id, full_name) {
+      document.getElementById("currently-seeing").innerHTML = "Seeing " + full_name;
+      function getCookie(name) {
+          var cookieValue = null;
+          if (document.cookie && document.cookie != '') {
+              var cookies = document.cookie.split(';');
+              for (var i = 0; i < cookies.length; i++) {
+                  var cookie = jQuery.trim(cookies[i]);
+                  // Does this cookie string begin with the name we want?
+                  if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+      var csrftoken = getCookie('csrftoken');
+      function csrfSafeMethod(method) {
+          // these HTTP methods do not require CSRF protection
+          return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+      }
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                console.log(xhr);
+            }
+        }
+      });
+      $.ajax({
+           type:"POST",
+           url:"/schedule/203468/",
+           data: {
+                  'appointment_id': id, // from form
+                  },
+           success: function(){
+               console.log("success");
+           }
+      });
+    }
+  </script>
+{% endblock %}
 
 {% block content %}
   <h2>Schedule</h2>
@@ -15,7 +59,7 @@
       <li>Duration: {{ appointment.duration }} minutes</li>
       <li>Status: {{ appointment.status }}</li>
       <!-- TODO: XSS protection -->
-      <button onclick="see_patient('{{ appointment.full_name }}')">See this Patient</button>
+      <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
       {% if appointment.is_currently_seen %}
       <li>Currently being seen.</li>
 
