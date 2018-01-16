@@ -41,3 +41,6 @@ class Appointment(models.Model):
 
   def full_name(self):
     return self.patient_first_name + ' ' + self.patient_last_name
+
+  def __unicode__(self):
+    return "%s %s" % (self.patient_first_name, self.patient_last_name)

@@ -9,6 +9,7 @@ import views
 urlpatterns = [
     url(r'^$', views.home , name='home'),
     url(r'^your-patient/$', views.patient_signin, name='patient'),
+    url(r'^demographic/(?P<appointment_id>\w+?)/(?P<patient_id>\w+?)$', views.patient_demographic, name='demographic'),
     url(r'^your-doctor/$', views.doctor_signin, name='doctor'),
     url(r'^schedule/(?P<doctor_id>\w+?)/$', views.doctor_schedule, name='doctor_schedule'),
     url(r'^thanks/$', views.thanks, name='thanks'),

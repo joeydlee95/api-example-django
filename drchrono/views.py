@@ -7,7 +7,7 @@ from django.utils import timezone
 
 import requests
 import datetime
-from .forms import PatientForm, DoctorForm
+from .forms import PatientForm, DoctorForm, DemographicForm
 from .models import Patient, Appointment
 from django.conf import settings
 
@@ -71,6 +71,22 @@ def get_appointment_id(request, patient_id):
         return appointment['id']
   return None
 
+def get_patient_info(request, patient_id):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+
+  url = 'https://drchrono.com/api/patients/' + str(patient_id)
+  response = requests.get(url, headers=headers)
+  if response.status_code == requests.codes.ok:
+    data = response.json()
+    return data
+  return None
+
+def update_appointment_status(appointment_id, status):
+  appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
+  appointment_entry.status = status
+  appointment_entry.save()
 
 def update_arrived(request, appointment_id):
   headers = {
@@ -85,14 +101,33 @@ def update_arrived(request, appointment_id):
   response = requests.patch(url, headers=headers, data=data)
   response.raise_for_status()
 
-  try:
-    appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
-    appointment_entry.status = 'Arrived'
-    appointment_entry.save()
-  except:
-    print('appointment object has not been created')
+# TODO: must change all appointment with the same patient_id
+def update_appointment(appointment_id, patient_id, form):
+  appointment_entry = Appointment.objects.get(appointment_id=appointment_id,
+                                                 patient_id=patient_id,
+                                                 )
+  print(appointment_entry.full_name())
+  print(form['first_name'])
+  print(form['last_name'])
+  appointment_entry.patient_first_name = form['first_name']
+  appointment_entry.patient_last_name = form['last_name']
+  appointment_entry.save()
+  print('updated appointment status')
 
-  return
+def update_demographic(request, appointment_id, patient_id, form):
+  headers = {
+    'Authorization': get_authorization(request),
+  }
+
+  data = {
+    'first_name': form['first_name'],
+    'last_name': form['last_name'],
+  }
+
+  url = 'https://drchrono.com/api/patients/' + str(patient_id)
+  response = requests.patch(url, headers=headers, data=data)
+  response.raise_for_status()
+
 
 def check_doctor_id(request, doctor_id):
   headers = {
@@ -115,11 +150,11 @@ def patient_signin(request):
     if form.is_valid():
       first_name = form.cleaned_data['first_name']
       last_name = form.cleaned_data['last_name']
-      patient_id = get_patient_id(request, first_name, last_name)
-      appointment_id = get_appointment_id(request, patient_id)
-
-      if patient_id == None or appointment_id == None:
-        return redirect(home)
+      try:
+        patient_id = get_patient_id(request, first_name, last_name)
+        appointment_id = get_appointment_id(request, patient_id)
+      except IndexError:
+        return redirect(patient_signin)
 
       patient = Patient(first_name=first_name,
                         last_name=last_name, 
@@ -127,14 +162,41 @@ def patient_signin(request):
                         appointment_id=appointment_id)
 
       # update demographic
-      update_arrived(request, patient.appointment_id)
-      return redirect(thanks)
+      return redirect(patient_demographic, patient_id=patient_id, appointment_id=appointment_id)
   else:
     form = PatientForm()
   
   context = Context({ 'form': form })
   context.update(csrf(request))
   return render(request, 'patient.html', context)
+
+@login_required(login_url='/login/')
+def patient_demographic(request, appointment_id, patient_id=None):
+  if request.method == 'POST':
+    form = DemographicForm(request.POST)
+    if form.is_valid():
+      form_data = {
+        'first_name': form.cleaned_data['first_name'],
+        'last_name': form.cleaned_data['last_name'],
+      }
+      update_demographic(request, appointment_id, patient_id, form_data)
+      print('entering update')
+      update_appointment(appointment_id, patient_id, form_data)
+      print('exiting update')
+      update_arrived(request, appointment_id)
+      update_appointment_status(appointment_id,'Arrived')
+      return redirect(thanks)
+  else:
+    patient = get_patient_info(request, patient_id)
+    form = DemographicForm({ 'first_name': patient['first_name'],
+                             'last_name': patient['last_name'],
+                          })
+    context = Context({ 'form': form, 
+                        'appointment_id': appointment_id,
+                        'patient_id': patient_id, })
+    context.update(csrf(request))
+    return render(request, 'demographic.html', context)
+    #return render(request, 'thanks.html')
 
 @login_required(login_url='/login/')
 def doctor_signin(request):
