@@ -1,17 +1,24 @@
+{% load static %}
+<script src="{% static 'scripts/main.js' %}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
 {% block content %}
   <h2>Schedule</h2>
   <p>Hello Doctor!</p>
-
+  <p id="currently-seeing"></p>
   
-  <ul>
+  <ul id="schedule">
   {% for appointment in appointments %}
       <li>Patient's Name: {{ appointment.full_name }} </li>
       <li>Schedule Time: {{ appointment.scheduled_time }}</li>
       <li>Exam Room: {{ appointment.exam_room }}</li>
       <li>Duration: {{ appointment.duration }} minutes</li>
       <li>Status: {{ appointment.status }}</li>
+      <!-- TODO: XSS protection -->
+      <button onclick="see_patient('{{ appointment.full_name }}')">See this Patient</button>
       {% if appointment.is_currently_seen %}
       <li>Currently being seen.</li>
+
       {% endif %}
       <br>
   {% endfor %}
