@@ -89,6 +89,7 @@ def get_patient_info(request, patient_id):
 def update_appointment_status(appointment_id, status):
   appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
   appointment_entry.status = status
+  appointment_entry.checkin_time = timezone.now()
   appointment_entry.save()
 
 def update_arrived(request, appointment_id):
@@ -274,6 +275,8 @@ def doctor_schedule(request, doctor_id):
       print('attempting current seen')
       appointment_entry = Appointment.objects.get(appointment_id=patient_clicked)
       appointment_entry.is_currently_seen = True
+      # TODO: negative time delta
+      appointment_entry.wait_time = timezone.now() - appointment_entry.scheduled_time
       appointment_entry.save()
       response_data['results'] = 'Success'
       print('succeeds current seen')
@@ -323,6 +326,7 @@ def doctor_schedule(request, doctor_id):
     context.update(csrf(request))
     return render(request, 'schedule.html', context)
     
+  
 
 @login_required(login_url='/login/')
 def thanks(request):
