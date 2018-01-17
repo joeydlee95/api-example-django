@@ -27,6 +27,7 @@ class Appointment(models.Model):
   scheduled_time =  models.DateTimeField()
   exam_room = models.IntegerField()
   duration = models.IntegerField()
+  doctor_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
   patient_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
   patient_first_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
   patient_last_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)

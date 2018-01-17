@@ -4,16 +4,16 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
 import views
+from drchrono.views import HomeView, PatientView, DemographicView, DoctorView, DoctorScheduleList, DailyUpdateView
 
 
 urlpatterns = [
-    url(r'^$', views.home , name='home'),
-    url(r'^your-patient/$', views.patient_signin, name='patient'),
-    url(r'^demographic/(?P<appointment_id>\w+?)/(?P<patient_id>\w+?)$', views.patient_demographic, name='demographic'),
-    url(r'^your-doctor/$', views.doctor_signin, name='doctor'),
-    #url(r'^schedule/(?P<doctor_id>\w+?)/$see-patient/$', views.see_patient),
-    url(r'^schedule/(?P<doctor_id>\w+?)/$', views.doctor_schedule, name='doctor_schedule'),
-    #url(r'^schedule/(?P<doctor_id>\w+?)/$see-patient/$', views.see_patient),
+    url(r'^$', HomeView.as_view() , name='home'),
+    url(r'^update/$', DailyUpdateView.as_view(), name='update'),
+    url(r'^patient/$', PatientView.as_view(), name='patient'),
+    url(r'^demographic/(?P<appointment_id>\w+?)/(?P<patient_id>\w+?)$', DemographicView.as_view()),
+    url(r'^doctor/$', DoctorView.as_view(), name='doctor'),
+    url(r'^schedule/(?P<doctor_id>\w+?)/$', DoctorScheduleList.as_view(), name='schedule'),
     url(r'^thanks/$', views.thanks, name='thanks'),
     url(r'^logout/$', views.logout, name='logout'),
     url(r'', include('social.apps.django_app.urls', namespace='social')),

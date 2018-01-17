@@ -43,6 +43,11 @@
            }
       });
     }
+
+    
+
+    //var interval = 1000 * 60 * 1;
+    //setInterval(update_call, interval)
   </script>
 {% endblock %}
 
@@ -52,12 +57,13 @@
   <p id="currently-seeing"></p>
   
   <ul id="schedule">
-  {% for appointment in appointments %}
+  {% for appointment in appt_list %}
       <li>Patient's Name: {{ appointment.full_name }} </li>
       <li>Schedule Time: {{ appointment.scheduled_time }}</li>
       <li>Exam Room: {{ appointment.exam_room }}</li>
       <li>Duration: {{ appointment.duration }} minutes</li>
       <li>Status: {{ appointment.status }}</li>
+      <li id ="{{ appointment.appointment_id }}" ></li>
       <!-- TODO: XSS protection -->
       <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
       {% if appointment.is_currently_seen %}
