@@ -35,7 +35,7 @@ class Appointment(models.Model):
 
   checkin_time = models.DateTimeField(blank=True, null=True)
   wait_time = models.DurationField(blank=True, null=True)
-  status = models.CharField(max_length=MAX_NAME_LENGTH)
+  status = models.CharField(max_length=MAX_NAME_LENGTH, null=True)
 
   is_archived = models.BooleanField(default=False)
   is_currently_seen = models.BooleanField(default=False)

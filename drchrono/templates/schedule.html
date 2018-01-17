@@ -3,7 +3,6 @@
 {% block javascript %}
   <script>
     function seePatient(id, full_name) {
-      document.getElementById("currently-seeing").innerHTML = "Seeing " + full_name;
       function getCookie(name) {
           var cookieValue = null;
           if (document.cookie && document.cookie != '') {
@@ -32,18 +31,47 @@
             }
         }
       });
-      $.ajax({
+      var str = "Do you want to see " + full_name;
+      var r = confirm(str)
+      if (r == true) {
+        $.ajax({
            type:"POST",
-           url:"/schedule/203468/",
+           url:"/schedule/203468/", // hardcoded
            data: {
+                  'operation': 'seePatient',
                   'appointment_id': id, // from form
                   },
            success: function(){
-               console.log("success");
+               document.getElementById("currently-seeing").innerHTML = "Seeing " + full_name;
            }
-      });
+        });
+      }
+      else {
+        return;
+      }
     }
 
+    function updateSchedule() {
+      // Do ajax call to get this same webpage
+      // That will get the new updated appointment models
+      // sync those data with data on this 
+      // if status is active for one of them, have a timer if it is not currently seen
+      console.log("before ajax");
+      $.ajax({
+           type: "GET",
+           url: "{% url 'schedule_update' doctor_id=203468 %}",
+           success: function(data){
+               console.log('Succeed in js')
+               console.log(data['appointments'])
+           }
+      });
+      console.log("setting time out");
+      //setTimeOut(function(){updateSchedule()}, 30000);
+    };
+
+    function startCount() {
+      updateSchedule()
+    }
     
 
     //var interval = 1000 * 60 * 1;
@@ -55,24 +83,39 @@
   <h2>Schedule</h2>
   <p>Hello Doctor!</p>
   <p id="currently-seeing"></p>
-  
-  <ul id="schedule">
-  {% for appointment in appt_list %}
-      <li>Patient's Name: {{ appointment.full_name }} </li>
-      <li>Schedule Time: {{ appointment.scheduled_time }}</li>
-      <li>Exam Room: {{ appointment.exam_room }}</li>
-      <li>Duration: {{ appointment.duration }} minutes</li>
-      <li>Status: {{ appointment.status }}</li>
-      <li id ="{{ appointment.appointment_id }}" ></li>
-      <!-- TODO: XSS protection -->
-      <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
-      {% if appointment.is_currently_seen %}
-      <li>Currently being seen.</li>
+  <button onclick="startCount()">Start count!</button>
+  <input type="text" id="txt">
+  <button onclick="stopCount()">Stop count!</button>
 
-      {% endif %}
-      <br>
-  {% endfor %}
-  </ul>
+  <div id="schedule">
+    {% for appointment in appt_list %}
+    {% if appointment.is_currently_seen %}
+      <div id = "{{ appointment.appointment_id }}" style="color:blue;">
+      {% else %}
+      <div id = "{{ appointment.appointment_id }}" class="panel panel-default border">
+    {% endif %}
+        <div class="panel-body">A Basic Panel</div>
+        <p> {{ appointment.full_name }} </p>
+        <p> {{ appointment.scheduled_time }} </p>
+        <p> {{ appointment.exam_room }} </p>
+        <p> {{ appointment.duration }} </p>
+        <p id="{{ appointment.appointment_id }}"> {{ appointment.status }} </p>
+        {% if appointment.status == Arrived %}
+        <p id="wait-time">00:00:00</p>
+        {% endif %}
+        <p>
+          {% if not appointment.is_currently_seen %}
+            <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
+          {% endif %}
+        </p>
+      </p>
+
+    {% endfor %}
+    <div>
+  </div>
+
+
+<br>
 
   <a href="{% url 'home'  %}">Log Out</a>
 {% endblock %}

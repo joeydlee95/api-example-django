@@ -14,8 +14,9 @@ urlpatterns = [
     url(r'^demographic/(?P<appointment_id>\w+?)/(?P<patient_id>\w+?)$', DemographicView.as_view()),
     url(r'^doctor/$', DoctorView.as_view(), name='doctor'),
     url(r'^schedule/(?P<doctor_id>\w+?)/$', DoctorScheduleList.as_view(), name='schedule'),
+    url(r'^scheduleupdate/(?P<doctor_id>\w+?)/$', views.schedule_json, name='schedule_update'),
     url(r'^thanks/$', views.thanks, name='thanks'),
     url(r'^logout/$', views.logout, name='logout'),
     url(r'', include('social.apps.django_app.urls', namespace='social')),
-    url(r'login/$', auth_views.login, name='login'),
+    url(r'^login/$', auth_views.login, name='login'),
 ]

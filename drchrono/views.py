@@ -1,21 +1,21 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render #need
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.template import Context
 from django.template.context_processors import csrf
 from django.utils import timezone
-from django.http import HttpResponse
 from django.http import JsonResponse
+import json
+
+
 from django.views.generic import View, FormView
 from django.views.generic.list import ListView
 
-import requests
 import datetime
 from drchrono import helper # bad practice for app import?
 from .forms import PatientForm, DoctorForm, DemographicForm
-from .models import Patient, Appointment
-from django.conf import settings
-from django.views.decorators.http import require_http_methods
+from .models import Patient, Appointment 
+from django.forms.models import model_to_dict
 
 # celery for async
 
@@ -215,10 +215,6 @@ class DoctorScheduleList(LoginRequiredMixin, ListView):
     except Appointment.DoesNotExist:
       pass
 
-@login_required(login_url='/login/')
-def logout(request):
-  auth_logout(request)
-  return redirect(home)
 
 
 
@@ -242,7 +238,7 @@ class DailyUpdateView(LoginRequiredMixin, View):
     data = helper.today_appointment_list(request)
     return self.setup_appointment_model(request, data)
 
-  def archive_old_appointments(self, requests):
+  def archive_old_appointments(self, request):
     today_date = datetime.date.today()
     try:
       appointment_entry = Appointment.objects.all().filter(is_archived=False)
@@ -312,6 +308,29 @@ class DailyUpdateView(LoginRequiredMixin, View):
     date = datetime.datetime.strptime( timestamp, "%Y-%m-%dT%H:%M:%S")
     return timezone.make_aware(date)
 
+
+def schedule_json(request, doctor_id):
+  print('entered')
+
+  if (request.is_ajax()):
+    print('ajax comfirmed')
+    date_today = datetime.date.today()
+    appointments = Appointment.objects.all().filter(is_archived=False,
+                                                    doctor_id=doctor_id,
+                                                    date_appointment=date_today).values()
+    data = {}
+    data['appointments'] = list(appointments)
+    try:
+      return JsonResponse(data)
+    except Exception as e:
+      print(str(e))
+  else:
+    return render(request, 'index.html')
+
+@login_required(login_url='/login/')
+def logout(request):
+  auth_logout(request)
+  return redirect(home)
 
 @login_required(login_url='/login/')
 def thanks(request):
