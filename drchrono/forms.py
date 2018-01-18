@@ -12,3 +12,9 @@ class PatientForm(forms.Form):
 
 class DoctorForm(forms.Form):
     userid = forms.CharField(label='Your id', max_length=MAX_ID_LENGTH)
+
+class DemographicForm(forms.Form):
+    
+    first_name = forms.CharField(label='First name', max_length=MAX_NAME_LENGTH, initial=True)
+    last_name = forms.CharField(label='Last name', max_length=MAX_NAME_LENGTH, initial=True)
+    #others 

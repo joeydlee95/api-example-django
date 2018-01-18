@@ -1,8 +1,9 @@
 {% block content %}
+  <a href="{% url 'update' %}">Daily Update</a>
   <h2>Doctor Checkin</h2>
-   <form action="/your-doctor/" method="post">
-      {% csrf_token %}
-      {{ form.as_ul }}
-      <input type="submit" value="Submit" />
-  </form>
+      <form action="/doctor/" method="post" autocomplete="off">
+          {% csrf_token %}
+          {{ form.as_ul }}
+          <input type="submit" value="Submit" />
+      </form>
 {% endblock %}
