@@ -1,6 +1,9 @@
+{% extends 'base.html' %}
 {% block content %}
-  <h2>Homepage</h2>
-  <a href="{% url 'patient'  %}">Patient Sign-in</a>
-  <a href="{% url 'doctor'  %}">Doctor Sign-in</a>
-  <a href="{% url 'logout'  %}">Logout</a>
+<div class="container">
+  <h1>Checkin Kiosk</h1>
+  <a class="btn btn-primary btn-lg btn-block" href="{% url 'patient'  %}" role="button">Patient Sign-in</a>
+  <a class="btn btn-secondary btn-lg btn-block" href="{% url 'doctor'  %}" role="button">Doctor Sign-in</a>
+</div>
+  <!--<a href="{% url 'logout'  %}">Logout</a> -->
 {% endblock %}

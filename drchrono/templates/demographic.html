@@ -1,8 +1,12 @@
+{% extends 'base.html' %}
 {% block content %}
-  <h2>Additional Demographic Information</h2>
-   <form action="/demographic/{{ appointment_id }}/{{ patient_id }}" method="post" autocomplete="off">
-      {% csrf_token %}
-      {{ form.as_ul }}
-      <input type="submit" value="Submit" />
+
+<div class="container">
+  <form class="form-signin" action="/demographic/{{ appointment_id }}/{{ patient_id }}" method="post" autocomplete="off">
+    <h1>Additional Demographic Information</h1>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Check in</button>
   </form>
+</div>
 {% endblock %}
