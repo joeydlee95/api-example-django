@@ -1,9 +1,12 @@
+{% extends 'base.html' %}
 {% block content %}
-  <a href="{% url 'update' %}">Daily Update</a>
-  <h2>Doctor Checkin</h2>
-      <form action="/doctor/" method="post" autocomplete="off">
-          {% csrf_token %}
-          {{ form.as_ul }}
-          <input type="submit" value="Submit" />
-      </form>
+<div class="container">
+  <a class="btn btn-primary" href="{% url 'update' %}">Daily Update</a>
+  <form class="form-signin" action="/doctor/" method="post" autocomplete="off">
+    <h1 class="form-signin-header">Doctor Checkin</h1>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-lg btn-primary" type="submit">Sign in</button>
+  </form>
+</div>
 {% endblock %}
