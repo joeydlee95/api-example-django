@@ -5,7 +5,6 @@ from django.template import Context
 from django.template.context_processors import csrf
 from django.utils import timezone
 from django.http import JsonResponse
-import json
 
 
 from django.views.generic import View, FormView
@@ -15,7 +14,6 @@ import datetime
 from drchrono import helper
 from .forms import PatientForm, DoctorForm, DemographicForm
 from .models import Patient, Appointment
-from django.forms.models import model_to_dict
 
 
 class LoginRequiredMixin(object):
