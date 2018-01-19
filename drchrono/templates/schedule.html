@@ -4,7 +4,7 @@
   <script>
     function update(url, doctor_id) {
       scheduleUpdate(url, doctor_id);
-      setTimeout(function() {update(url, doctor_id); }, 60000);
+      setTimeout(function() {update(url, doctor_id); }, 10000);
     }
     $(document).ready(function() {
       var doctor_id = "{{ extra_context.doctor_id }}";
