@@ -150,21 +150,23 @@ class DoctorView(LoginRequiredMixin, FormView):
                 return self.get(request)
 
 
-class DoctorScheduleList(LoginRequiredMixin, ListView):
+class DoctorScheduleList(LoginRequiredMixin, View):
     template_name = 'schedule.html'
     model = Appointment
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
+    def get(self, request, *args, **kwargs):
         date_today = datetime.date.today()
-        context = super(DoctorScheduleList, self).get_context_data(**kwargs)
-        # Add in a QuerySet of all the books
-        appointments = Appointment.objects.all()
-        context['appt_list'] = appointments.filter(date_appointment=date_today,
-                                                   is_archived=False,
-                                                   doctor_id=self.kwargs['doctor_id'])
-        print(context['appt_list'])
-        return context
+        template_name = 'schedule.html'
+        doctor_id = self.kwargs['doctor_id']
+        context = Context({
+            "template_name": "contacts/index.html",
+            "queryset": Appointment.objects.all().filter(date_appointment=date_today,
+                                                         is_archived=False,
+                                                         doctor_id=doctor_id),
+            "extra_context" : { "doctor_id" : doctor_id, }
+            })
+
+        return render(request, template_name, context)
 
     def post(self, request, *args, **kwargs):
         patient_clicked = request.POST.get('appointment_id')
@@ -326,6 +328,7 @@ class DailyUpdateView(LoginRequiredMixin, View):
 
 
 def schedule_json(request, doctor_id):
+    print("hitting")
     if (request.is_ajax()):
         date_today = datetime.date.today()
         appointments = Appointment.objects.all().filter(is_archived=False,
