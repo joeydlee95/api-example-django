@@ -5,6 +5,7 @@ function scheduleUpdate(url, doctor_id) {
         success: function(data){
             var main_div = document.createElement("div");
             main_div.classList.add('list-group');
+            document.getElementById("schedule").innerHTML = "";
             var elem = document.getElementById("schedule");
             var elem2 = document.getElementById("currently-seeing");
             for (var i = 0; i < data['appointments'].length; i++) {
