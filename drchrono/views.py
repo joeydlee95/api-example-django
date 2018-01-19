@@ -24,6 +24,7 @@ class LoginRequiredMixin(object):
 
 
 class HomeView(LoginRequiredMixin, View):
+    """Home Page View"""
     template_name = 'index.html'
 
     def get(self, request, *args, **kwargs):
@@ -31,6 +32,7 @@ class HomeView(LoginRequiredMixin, View):
 
 
 class PatientView(LoginRequiredMixin, FormView):
+    """Patient Sign in class view."""
     template_name = 'patient.html'
     form_class = PatientForm
 
@@ -162,6 +164,7 @@ class DoctorScheduleList(LoginRequiredMixin, View):
     model = Appointment
 
     def get(self, request, *args, **kwargs):
+        # TODO: Check for daily update. Redirect.
         date_today = datetime.date.today()
         template_name = 'schedule.html'
         doctor_id = self.kwargs['doctor_id']
@@ -208,6 +211,7 @@ class DoctorScheduleList(LoginRequiredMixin, View):
 
 # TODO: create patients and flush them daily?
 class DailyUpdateView(LoginRequiredMixin, View):
+    """Update DB Daily Appointments"""
     template_name = 'index.html'
 
     def get(self, request, *args, **kwargs):
@@ -337,6 +341,7 @@ class DailyUpdateView(LoginRequiredMixin, View):
 
 
 def schedule_json(request, doctor_id):
+    """Returns all appointments in json format"""
     if (request.is_ajax()):
         date_today = datetime.date.today()
         appointments = Appointment.objects.all().filter(is_archived=False,
@@ -377,6 +382,7 @@ def schedule_json(request, doctor_id):
 
 
 def average_wait_time(request, doctor_id):
+    """Returns average time"""
     if (request.is_ajax()):
         data = {}
         appointments = Appointment.objects.all().filter(is_archived=True,
