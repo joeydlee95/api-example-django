@@ -90,12 +90,9 @@ class DemographicView(LoginRequiredMixin, FormView):
     form_class = DemographicForm
 
     def get(self, request, *args, **kwargs):
-        print('here')
         patient_id = self.kwargs['patient_id']
         appointment_id = self.kwargs['appointment_id']
 
-
-        print(patient_id)
         patient = helper.get_patient_info(request, patient_id)
         if not patient:
             print("Could not get patient %s info." % patient_id)
