@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h1>Thanks for signing in!</h1>
-  <a href="{% url 'home'  %}">Finished</a>
+<div class="container">
+  <div class="thanks">
+    <h1>Thanks for signing in!</h1>
+    <a class="btn btn-primary" href="{% url 'home'  %}">Finished</a>
+  </div>
+</div>
 {% endblock %}

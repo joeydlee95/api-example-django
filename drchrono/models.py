@@ -1,47 +1,62 @@
 from django.db import models
 from django.conf import settings
-
-from datetime import date
-#from localflavor.us.forms import USSocialSecurityNumberField
+import pytz
+import datetime
+# from localflavor.us.forms import USSocialSecurityNumberField
 
 MAX_NAME_LENGTH = settings.MAX_NAME_LENGTH
+MAX_ID_LENGTH = settings.MAX_ID_LENGTH
 
-# Create your models here.
-'''class Doctor(models.Model):
-  doctor_id = models.AutoField(primary_key=True)
-  last_name = models.CharField(max_length=MAX_NAME_LENGTH)
-  first_name = models.CharField(max_length=MAX_NAME_LENGTH)
-'''
 class Patient(models.Model):
-  last_name = models.CharField(max_length=MAX_NAME_LENGTH)
-  first_name = models.CharField(max_length=MAX_NAME_LENGTH)
-  patient_id = models.CharField(max_length=MAX_NAME_LENGTH)
-  appointment_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
+    """A model for a patient"""
+    patient_id = models.CharField(primary_key=True, max_length=MAX_ID_LENGTH)
+    first_name = models.CharField(max_length=MAX_NAME_LENGTH)
+    last_name = models.CharField(max_length=MAX_NAME_LENGTH)
+    # ssn = USSocialSecurityNumberField()
 
-  def __unicode__(self):
-    return "%s %s" % (self.first_name, self.last_name)
-  #ssn = USSocialSecurityNumberField()
+    def __unicode__(self):
+        return "%s %s" % (self.first_name, self.last_name)
+
 
 class Appointment(models.Model):
-  date_appointment = models.DateField()
-  scheduled_time =  models.DateTimeField()
-  exam_room = models.IntegerField()
-  duration = models.IntegerField()
-  doctor_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_first_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_last_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  appointment_id = models.CharField(max_length=MAX_NAME_LENGTH)
+    """A Model for an appointment."""
+    appointment_id = models.CharField(max_length=MAX_ID_LENGTH)
+    date_appointment = models.DateField()
+    scheduled_time = models.DateTimeField()
+    exam_room = models.IntegerField()
+    duration = models.IntegerField()
+    doctor_id = models.CharField(max_length=MAX_NAME_LENGTH,
+                                 blank=True, null=True)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
 
-  checkin_time = models.DateTimeField(blank=True, null=True)
-  wait_time = models.DurationField(blank=True, null=True)
-  status = models.CharField(max_length=MAX_NAME_LENGTH, null=True)
+    checkin_time = models.DateTimeField(blank=True, null=True)
+    wait_time = models.DurationField(blank=True, null=True)
+    status = models.CharField(max_length=MAX_NAME_LENGTH, null=True)
 
-  is_archived = models.BooleanField(default=False)
-  is_currently_seen = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    is_currently_seen = models.BooleanField(default=False)
 
-  def full_name(self):
-    return self.patient_first_name + ' ' + self.patient_last_name
+    def full_name(self):
+        return str(self.patient)
 
-  def __unicode__(self):
-    return "%s %s" % (self.patient_first_name, self.patient_last_name)
+    def __unicode__(self):
+        return "%s" % (self.appointment_id)
+
+    def get_readable_scheduled_time(self):
+        date = self.scheduled_time.astimezone(pytz.timezone('US/Pacific'))
+        return date.strftime("%Y-%m-%d %I:%M %p")
+
+    def get_readable_checkin_time(self):
+        if self.checkin_time:
+            date = self.checkin_time.astimezone(pytz.timezone('US/Pacific'))
+            checkin_time = date.strftime("%Y-%m-%d %I:%M %p")
+        else:
+            checkin_time = ""
+        return checkin_time
+
+    def get_wait_time(self):
+        if self.wait_time:
+            wait_time = self.wait_time
+        else:
+            wait_time = None
+        return wait_time
