@@ -2,11 +2,14 @@
 {% csrf_token %}
 {% block javascript %}
   <script>
-
+    function update(url, doctor_id) {
+      scheduleUpdate(url, doctor_id);
+      setTimeout(function() {update(url, doctor_id); }, 60000);
+    }
     $(document).ready(function() {
       var doctor_id = "{{ extra_context.doctor_id }}";
       var url = "/scheduleupdate/" + doctor_id + "/";
-      scheduleUpdate(url, doctor_id);
+      update(url, doctor_id);
     });
 
     function averageFunc() {
@@ -14,8 +17,7 @@
       var url = "/averagewait/" + doctor_id + "/";
       averageWait(url);
     }
-    //var interval = 1000 * 60 * 1;
-    //setInterval(update_call, interval)
+
   </script>
 {% endblock %}
 
@@ -23,8 +25,8 @@
   <div class="container">
     <h1 class="display-4">Schedule</h1>
     <p>Hello Doctor!</p>
-    <p id="currently-seeing"></p>
-    <button onclick="averageFunc()">Average Wait Time</button>
+    <div id="currently-seeing" class="list-group-item list-group-item-action"></div>
+    <button onclick="averageFunc()" class='btn btn-lg btn-primary'>Average Wait Time</button>
     <div id="averageWait"></div>
     <div id="schedule"></div>
     <a href="{% url 'home'  %}">Log Out</a>
