@@ -2,94 +2,17 @@
 {% csrf_token %}
 {% block javascript %}
   <script>
-    function seePatient(id, full_name) {
-      function getCookie(name) {
-          var cookieValue = null;
-          if (document.cookie && document.cookie != '') {
-              var cookies = document.cookie.split(';');
-              for (var i = 0; i < cookies.length; i++) {
-                  var cookie = jQuery.trim(cookies[i]);
-                  // Does this cookie string begin with the name we want?
-                  if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                      break;
-                  }
-              }
-          }
-          return cookieValue;
-      }
-      var csrftoken = getCookie('csrftoken');
-      function csrfSafeMethod(method) {
-          // these HTTP methods do not require CSRF protection
-          return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-      }
-      $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                console.log(xhr);
-            }
-        }
-      });
-      var str = "Do you want to see " + full_name;
-      var r = confirm(str)
-      if (r == true) {
-        $.ajax({
-           type:"POST",
-           url:"/schedule/203468/", // hardcoded
-           data: {
-                  'operation': 'seePatient',
-                  'appointment_id': id, // from form
-                  },
-           success: function(){
-               document.getElementById("currently-seeing").innerHTML = "Seeing " + full_name;
-           }
-        });
-      }
-      else {
-        return;
-      }
-    }
 
-    function startCount() {
-      update()
-    }
-    
-    function update() {
-      $.ajax({
-           type: "GET",
-           url: "{% url 'schedule_update' doctor_id=203468 %}",
-           success: function(data){
-              document.getElementById("schedule").innerHTML = '<div class="container">';
-              for (var i = 0; i < data['appointments'].length; i++) {
-                document.getElementById("schedule").innerHTML += "<div >";
-                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['patient'] + "</p>";
-                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['scheduled_time'] + "</p>";
-                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['exam_room'] + "</p>";
-                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['duration'] + "</p>";
-                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['status'] + "</p>";
+    $(document).ready(function() {
+      var doctor_id = "{{ extra_context.doctor_id }}";
+      var url = "/scheduleupdate/" + doctor_id + "/";
+      scheduleUpdate(url, doctor_id);
+    });
 
-                if (data['appointments'][i]['status'] == "Arrived" && data['appointments'][i]['checkin_time'] != "") {
-                  document.getElementById("schedule").innerHTML += "<p> Checked in: " + data['appointments'][i]['checkin_time'] + "</p>";
-                  document.getElementById("schedule").innerHTML += "<p> Wait Time: " + data['appointments'][i]['wait_time'] + " minutes</p>";
-                }
-
-                document.getElementById("schedule").innerHTML += "</div>";
-              }
-              document.getElementById("schedule").innerHTML += "</div>";
-           }
-      });
-      setTimeout(update, 60000);
-    }
-
-    function averageWait() {
-      $.ajax({
-           type: "GET",
-           url: "{% url 'average_wait' doctor_id=203468 %}",
-           success: function(data){
-              document.getElementById("schedule").innerHTML = data['wait_time'];
-           }
-      });
+    function averageFunc() {
+      var doctor_id = "{{ extra_context.doctor_id }}";
+      var url = "/averagewait/" + doctor_id + "/";
+      averageWait(url);
     }
     //var interval = 1000 * 60 * 1;
     //setInterval(update_call, interval)
@@ -97,41 +20,38 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Schedule</h1>
-  <p>Hello Doctor!</p>
-  <p id="currently-seeing"></p>
-  <button onclick="startCount()">Start count!</button>
-  <button onclick="averageWait()">Average Wait Time</button>
-  <div id="averageWait"></div>
-  <div id="schedule"></div>
+  <div class="container">
+    <h1 class="display-4">Schedule</h1>
+    <p>Hello Doctor!</p>
+    <p id="currently-seeing"></p>
+    <button onclick="averageFunc()">Average Wait Time</button>
+    <div id="averageWait"></div>
+    <div id="schedule"></div>
+    <a href="{% url 'home'  %}">Log Out</a>
+  </div>
   <!--<div id="sschedule">
-    {% for appointment in appt_list %}
-    {% if appointment.is_currently_seen %}
-      <div id = "{{ appointment.appointment_id }}" style="color:blue;">
-      {% else %}
-      <div id = "{{ appointment.appointment_id }}" class="panel panel-default border">
-    {% endif %}
-        <p> {{ appointment.full_name }} </p>
-        <p> {{ appointment.scheduled_time }} </p>
-        <p> {{ appointment.exam_room }} </p>
-        <p> {{ appointment.duration }} </p>
-        <p id="{{ appointment.appointment_id }}"> {{ appointment.status }} </p>
-        {% if appointment.status == Arrived %}
-        <p id="wait-time">00:00:00</p>
+        {% for appointment in appt_list %}
+        {% if appointment.is_currently_seen %}
+          <div id = "{{ appointment.appointment_id }}" style="color:blue;">
+          {% else %}
+          <div id = "{{ appointment.appointment_id }}" class="panel panel-default border">
         {% endif %}
-        <p>
-          {% if not appointment.is_currently_seen %}
-            <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
-          {% endif %}
-        </p>
-      </p>
+            <p> {{ appointment.full_name }} </p>
+            <p> {{ appointment.scheduled_time }} </p>
+            <p> {{ appointment.exam_room }} </p>
+            <p> {{ appointment.duration }} </p>
+            <p id="{{ appointment.appointment_id }}"> {{ appointment.status }} </p>
+            {% if appointment.status == Arrived %}
+            <p id="wait-time">00:00:00</p>
+            {% endif %}
+            <p>
+              {% if not appointment.is_currently_seen %}
+                <button onclick='seePatient("{{ appointment.appointment_id }}","{{ appointment.full_name }}")'>See this Patient</button>
+              {% endif %}
+            </p>
+          </p>
 
-    {% endfor %}
-    <div>
-  </div>-->
-
-
-<br>
-
-  <a href="{% url 'home'  %}">Log Out</a>
+        {% endfor %}
+        <div>
+      </div>-->
 {% endblock %}
