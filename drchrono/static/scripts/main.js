@@ -35,7 +35,6 @@ function scheduleUpdate(url) {
                 inside_div.appendChild(para4);
                 inside_div.appendChild(para5);
 
-
                 if (data['appointments'][i]['status'] == "Arrived" && data['appointments'][i]['checkin_time'] != "") {
                     var para6 = document.createElement("p");
                     var node6 = document.createTextNode("Checked in: " + data['appointments'][i]['checkin_time']);
@@ -46,6 +45,16 @@ function scheduleUpdate(url) {
                     para7.appendChild(node7);
                     inside_div.appendChild(para6);
                     inside_div.appendChild(para7);
+                }
+
+                if (data['appointments'][i]['status'] == "Arrived") {
+                  var para8 = document.createElement("button");
+                  para8.onclick = function () {
+                    seePatient(data['appointments'][i]['id'], data['appointments'][i]['patient']);
+                  };
+                  var node8 = document.createTextNode("See Now");
+                  para8.appendChild(node8);
+                  inside_div.appendChild(para8);
                 }
 
                 main_div.appendChild(inside_div)

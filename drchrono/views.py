@@ -86,10 +86,16 @@ class DemographicView(LoginRequiredMixin, FormView):
     form_class = DemographicForm
 
     def get(self, request, *args, **kwargs):
+        print('here')
         patient_id = self.kwargs['patient_id']
         appointment_id = self.kwargs['appointment_id']
 
+
+        print(patient_id)
         patient = helper.get_patient_info(request, patient_id)
+        if not patient:
+            print("Could not get patient %s info." % patient_id)
+            return redirect('patient')
         form = self.form_class({'email': patient['email'],
                                 'gender': patient['gender'], })
 
@@ -328,7 +334,6 @@ class DailyUpdateView(LoginRequiredMixin, View):
 
 
 def schedule_json(request, doctor_id):
-    print("hitting")
     if (request.is_ajax()):
         date_today = datetime.date.today()
         appointments = Appointment.objects.all().filter(is_archived=False,

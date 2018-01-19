@@ -73,8 +73,7 @@ def get_patient_info(request, patient_id):
 
     url = 'https://drchrono.com/api/patients/' + str(patient_id)
     data = make_api_get_request(request=request, url=url)
-
-    if not data:
+    if data:
         return data
 
     return None
