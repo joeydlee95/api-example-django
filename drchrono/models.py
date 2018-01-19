@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-
+import pytz
 import datetime
 # from localflavor.us.forms import USSocialSecurityNumberField
 
@@ -43,11 +43,13 @@ class Appointment(models.Model):
         return "%s" % (self.appointment_id)
 
     def get_readable_scheduled_time(self):
-        return self.scheduled_time.strftime("%Y-%m-%d %I:%M %p")
+        date = self.scheduled_time.astimezone(pytz.timezone('US/Pacific'))
+        return date.strftime("%Y-%m-%d %I:%M %p")
 
     def get_readable_checkin_time(self):
         if self.checkin_time:
-            checkin_time = self.checkin_time.strftime("%Y-%m-%d %I:%M %p")
+            date = self.checkin_time.astimezone(pytz.timezone('US/Pacific'))
+            checkin_time = date.strftime("%Y-%m-%d %I:%M %p")
         else:
             checkin_time = ""
         return checkin_time

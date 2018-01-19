@@ -39,7 +39,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'drchrono',
     'social.apps.django_app.default',
-    'localflavor'
+    'localflavor',
+    'pytz',
 )
 
 MIDDLEWARE_CLASSES = (
