@@ -58,15 +58,16 @@ def get_appointment_id(request, patient_id):
     'date': date_today,
     'patient': patient_id,
   }
+
   url = 'https://drchrono.com/api/appointments'
   data = make_api_get_request(request=request, url=url, params=params)
 
   if data:
     appointments = data['results']
-    for appointment in appointments:
-      if appointment['patient'] == patient_id:
-        return appointment['id']
 
+    for appointment in appointments:
+      if str(appointment['patient']) == patient_id:
+        return appointment['id']
   return None
 
 
@@ -94,11 +95,11 @@ def update_arrived(request, appointment_id):
   else:
     return False
 
-def update_demographic(request, appointment_id, patient_id, form):
+def update_demographic(request, patient_id, form):
 
   data = {
-    'first_name': form['first_name'],
-    'last_name': form['last_name'],
+    'email': form['email'],
+    'gender': form['gender'],
   }
 
   url = 'https://drchrono.com/api/patients/' + str(patient_id)

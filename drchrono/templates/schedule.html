@@ -70,9 +70,31 @@
     };
 
     function startCount() {
-      updateSchedule()
+      update()
     }
     
+    function update() {
+      $.ajax({
+           type: "GET",
+           url: "{% url 'schedule_update' doctor_id=203468 %}",
+           success: function(data){
+              console.log(data['appointments'].length);
+              document.getElementById("schedule").innerHTML = "<div>";
+              for (var i = 0; i < data['appointments'].length; i++) {
+                console.log(data['appointments'][i])
+                document.getElementById("schedule").innerHTML += "<div>";
+                // if status is arrived also include wait time
+                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['scheduled_time'] + "</p>";
+                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
+                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
+                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
+                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
+                document.getElementById("schedule").innerHTML += "</div>";
+              }
+              document.getElementById("schedule").innerHTML += "</div>";
+           }
+      });
+    }
 
     //var interval = 1000 * 60 * 1;
     //setInterval(update_call, interval)
@@ -84,17 +106,15 @@
   <p>Hello Doctor!</p>
   <p id="currently-seeing"></p>
   <button onclick="startCount()">Start count!</button>
-  <input type="text" id="txt">
-  <button onclick="stopCount()">Stop count!</button>
 
-  <div id="schedule">
+  <div id="schedule"></div>
+  <!--<div id="sschedule">
     {% for appointment in appt_list %}
     {% if appointment.is_currently_seen %}
       <div id = "{{ appointment.appointment_id }}" style="color:blue;">
       {% else %}
       <div id = "{{ appointment.appointment_id }}" class="panel panel-default border">
     {% endif %}
-        <div class="panel-body">A Basic Panel</div>
         <p> {{ appointment.full_name }} </p>
         <p> {{ appointment.scheduled_time }} </p>
         <p> {{ appointment.exam_room }} </p>
@@ -112,7 +132,7 @@
 
     {% endfor %}
     <div>
-  </div>
+  </div>-->
 
 
 <br>

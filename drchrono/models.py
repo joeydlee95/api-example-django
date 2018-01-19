@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 
-from datetime import date
+import datetime
 #from localflavor.us.forms import USSocialSecurityNumberField
 
 MAX_NAME_LENGTH = settings.MAX_NAME_LENGTH
@@ -13,25 +13,24 @@ MAX_NAME_LENGTH = settings.MAX_NAME_LENGTH
   first_name = models.CharField(max_length=MAX_NAME_LENGTH)
 '''
 class Patient(models.Model):
-  last_name = models.CharField(max_length=MAX_NAME_LENGTH)
+  patient_id = models.CharField(primary_key=True, max_length=MAX_NAME_LENGTH)
   first_name = models.CharField(max_length=MAX_NAME_LENGTH)
-  patient_id = models.CharField(max_length=MAX_NAME_LENGTH)
-  appointment_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
+  last_name = models.CharField(max_length=MAX_NAME_LENGTH)
 
   def __unicode__(self):
     return "%s %s" % (self.first_name, self.last_name)
   #ssn = USSocialSecurityNumberField()
 
+
 class Appointment(models.Model):
+  appointment_id = models.CharField(max_length=MAX_NAME_LENGTH)
   date_appointment = models.DateField()
   scheduled_time =  models.DateTimeField()
   exam_room = models.IntegerField()
   duration = models.IntegerField()
   doctor_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_id = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_first_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  patient_last_name = models.CharField(max_length=MAX_NAME_LENGTH, blank=True, null=True)
-  appointment_id = models.CharField(max_length=MAX_NAME_LENGTH)
+  patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+
 
   checkin_time = models.DateTimeField(blank=True, null=True)
   wait_time = models.DurationField(blank=True, null=True)
@@ -41,7 +40,17 @@ class Appointment(models.Model):
   is_currently_seen = models.BooleanField(default=False)
 
   def full_name(self):
-    return self.patient_first_name + ' ' + self.patient_last_name
+    return str(self.patient)
 
   def __unicode__(self):
-    return "%s %s" % (self.patient_first_name, self.patient_last_name)
+    return "%s" % (self.appointment_id)
+
+  def get_readable_scheduled_time(self):
+    return self.scheduled_time.strftime("%Y-%m-%d %I:%M %p")
+
+  def get_readable_checkin_time(self):
+    if self.checkin_time:
+      checkin_time = self.checkin_time.strftime("%Y-%m-%d %I:%M %p")
+    else:
+      return ""
+

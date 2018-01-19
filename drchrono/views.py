@@ -50,41 +50,35 @@ class PatientView(LoginRequiredMixin, FormView):
       first_name = form.cleaned_data['first_name']
       last_name = form.cleaned_data['last_name']
 
-      patient_id = self.handle_patient_id(request, first_name, last_name)
-      if not patient_id:
+      # This get assumes that you only have 1 entry
+      patient = self.patient_safe_get(first_name=first_name, last_name=last_name)
+      if not patient:
         return self.get(request)
 
-      appointment_id = self.handle_appointment_id(request, patient_id)
+      appointment_id = self.handle_appointment_id(request, patient.patient_id)
       if not appointment_id:
         return self.get(request)
 
-      redirecturl = '/demographic/' + str(appointment_id) + '/' + str(patient_id)
+      appt_end = str(appointment_id)
+      patient_end = str(patient.patient_id)
+
+      redirecturl = '/demographic/' + appt_end + '/' + patient_end
       return redirect(redirecturl)
-      #return redirect(patient_demographic, patient_id=patient_id, appointment_id=appointment_id)
 
-  def handle_patient_id(self, request, first_name, last_name):
+  def patient_safe_get(self, first_name, last_name):
     try:
-        patient_id = helper.get_patient_id(request, first_name, last_name)
-    except IndexError:
-        # TODO: include error message, cannot find you in files
-        return None
-
-    if patient_id:
-        return patient_id
-    else:
-        return None
+      patient = Patient.objects.get(first_name__iexact=first_name, last_name__iexact=last_name)
+    except Patient.DoesNotExist:
+      patient = None
+    return patient
 
   def handle_appointment_id(self, request, patient_id):
     try:
-      appointment_id = helper.get_appointment_id(request, patient_id)
+      appointment_id = helper.get_appointment_id(request, str(patient_id))
     except IndexError:
-      # TODO: include error message, no appointments today
-      return None
+      appointment_id = None
 
-    if appointment_id:
-      return appointment_id
-    else:
-      return None
+    return appointment_id
 
 
 class DemographicView(LoginRequiredMixin, FormView):
@@ -96,8 +90,8 @@ class DemographicView(LoginRequiredMixin, FormView):
     appointment_id = self.kwargs['appointment_id']
 
     patient = helper.get_patient_info(request, patient_id)
-    form = self.form_class({ 'first_name': patient['first_name'],
-                             'last_name': patient['last_name'],
+    form = self.form_class({ 'email': patient['email'],
+                             'gender': patient['gender'],
                           })
 
     context = Context({ 'form': form, 
@@ -114,12 +108,13 @@ class DemographicView(LoginRequiredMixin, FormView):
     form = self.form_class(request.POST)
     if form.is_valid():
       form_data = {
-        'first_name': form.cleaned_data['first_name'],
-        'last_name': form.cleaned_data['last_name'],
+        'email': form.cleaned_data['email'],
+        'gender': form.cleaned_data['gender'],
       }
-      update_patient_status = helper.update_demographic(request, appointment_id, patient_id, form_data)
-      if update_patient_status:
-        self.update_appointment(appointment_id, patient_id, form_data)
+      # Better error message should go here
+      update_patient_status = helper.update_demographic(request, patient_id, form_data)
+      #if not update_patient_status:
+        #self.update_appointment(appointment_id, patient_id, form_data)
 
       update_arrival_status = helper.update_arrived(request, appointment_id)
       if update_arrival_status:
@@ -132,15 +127,6 @@ class DemographicView(LoginRequiredMixin, FormView):
     appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
     appointment_entry.status = status
     appointment_entry.checkin_time = timezone.now()
-    appointment_entry.save()
-
-  # TODO: must change all appointment with the same patient_id
-  def update_appointment(self, appointment_id, patient_id, form):
-    appointment_entry = Appointment.objects.get(appointment_id=appointment_id,
-                                                   patient_id=patient_id,
-                                                )
-    appointment_entry.patient_first_name = form['first_name']
-    appointment_entry.patient_last_name = form['last_name']
     appointment_entry.save()
 
 
@@ -216,27 +202,27 @@ class DoctorScheduleList(LoginRequiredMixin, ListView):
       pass
 
 
-
-
 # TODO: create patients and flush them daily?
 class DailyUpdateView(LoginRequiredMixin, View):
   template_name = 'index.html'
 
   def get(self, request, *args, **kwargs):
-    # Get appointments for the day
-      # using patient id's create patient models
-      # foreign key appointment to 1 patient
     if self.update_appointments(request):
       return render(request, self.template_name)
     else:
-      return redirect('/update/')
+      print("Did not update fully. Try again.")
+      return redirect('/')
   
   def update_appointments(self, request):
     """Archive old appointments and import new ones"""
     self.archive_old_appointments(request)
 
     data = helper.today_appointment_list(request)
-    return self.setup_appointment_model(request, data)
+    patient_updated = self.update_patients(request, data)
+    if patient_updated:
+      return self.setup_appointment_model(request, data)
+    else:
+      return None
 
   def archive_old_appointments(self, request):
     today_date = datetime.date.today()
@@ -249,6 +235,35 @@ class DailyUpdateView(LoginRequiredMixin, View):
           appointment.save()
     except Appointment.DoesNotExist:
       pass
+
+  def update_patients(self, request, data):
+    # patient_id from data
+    if data:
+      appointments = data
+
+      for appointment in appointments:
+        if appointment['patient']:
+          try:
+            patient_entry = Patient.objects.get(patient_id=appointment['patient'])
+          except Patient.DoesNotExist:
+            patient_id = appointment['patient']
+            self.add_patient_model(request, patient_id)
+
+      return True
+    return False
+
+  def add_patient_model(self, request, patient_id):
+    data = helper.get_patient_summary(request=request, patient_id=patient_id)
+    return self.commit_patient_model(request=request, patient=data)
+
+  def commit_patient_model(self, request, patient):
+    first_name = patient['first_name']
+    last_name = patient['last_name']
+    patient_id = patient['id']
+    patient_entry = Patient.create(first_name=patient['first_name'],
+                                   last_name=patient['last_name'],
+                                   patient_id=patient['id'])
+    return patient_entry
 
   def setup_appointment_model(self, request, data):
     if data:
@@ -277,10 +292,15 @@ class DailyUpdateView(LoginRequiredMixin, View):
       'status' : appointment['status'],
       'appointment_id': appointment['id'],
     }
+    try:
+      patient = Patient.objects.get(patient_id=model_data['patient_id'])
+    except Patient.DoesNotExist:
+      print("This patient %s does not exist." % str(model_data['patient_id']))
 
-    data = helper.get_patient_summary(request, model_data['patient_id'])
-    return self.commit_appointment_model(patient=data, model_data=model_data)
 
+    return self.commit_appointment_model(patient=patient, model_data=model_data)
+
+  # True if committed, False if failed
   def commit_appointment_model(self, patient, model_data):
     date_appointment = model_data['date_appointment']
     scheduled_time = model_data['scheduled_time']
@@ -288,29 +308,25 @@ class DailyUpdateView(LoginRequiredMixin, View):
     duration = model_data['duration']
     doctor_id = model_data['doctor_id']
     patient_id = model_data['patient_id']
-    patient_last_name = patient['last_name']
-    patient_first_name = patient['first_name']
     status = model_data['status']
     appointment_id = model_data['appointment_id']
 
-    appointment_entry = Appointment.objects.create(date_appointment=date_appointment,
+    appointment_entry = Appointment.objects.create(appointment_id=appointment_id,
+                                                   date_appointment=date_appointment,
                                                    scheduled_time=scheduled_time,
                                                    exam_room=exam_room,
                                                    duration=duration,
                                                    doctor_id=doctor_id,
-                                                   patient_id=patient_id,
-                                                   patient_first_name=patient_first_name,
-                                                   patient_last_name=patient_last_name,
-                                                   status=status,
-                                                   appointment_id=appointment_id)
+                                                   patient=patient,
+                                                   status=status)
+    return True
 
   def convert_timestamp_to_time(self, timestamp):
     date = datetime.datetime.strptime( timestamp, "%Y-%m-%dT%H:%M:%S")
     return timezone.make_aware(date)
 
 
-def schedule_json(request, doctor_id):
-  print('entered')
+"""def schedule_json(request, doctor_id):
 
   if (request.is_ajax()):
     print('ajax comfirmed')
@@ -320,12 +336,51 @@ def schedule_json(request, doctor_id):
                                                     date_appointment=date_today).values()
     data = {}
     data['appointments'] = list(appointments)
+    print(data)
     try:
       return JsonResponse(data)
     except Exception as e:
       print(str(e))
   else:
-    return render(request, 'index.html')
+    return render(request, 'index.html')"""
+
+def schedule_json(request, doctor_id):
+  if (request.is_ajax()):
+    date_today = datetime.date.today()
+    appointments = Appointment.objects.all().filter(is_archived=False,
+                                                    doctor_id=doctor_id,
+                                                    date_appointment=date_today)
+
+    data = {}
+    data['appointments'] = []
+    for appointment in appointments:
+      scheduled_time = appointment.get_readable_scheduled_time()
+      checkin_time = appointment.get_readable_checkin_time()
+
+      print(checkin_time)
+      temp_data = { 'appointment_id': appointment.appointment_id,
+                    'scheduled_time' : scheduled_time, # need readable time
+                    'exam_room': appointment.exam_room,
+                    'duration': appointment.duration,
+                    'patient': str(appointment.patient),
+                    'checkin_time': checkin_time, # need readable time or none
+                    'status' : appointment.status,
+                    'is_currently_seen': appointment.is_currently_seen,
+                  };
+      data['appointments'].append(temp_data)
+
+    data['status'] = "Success"
+    try:
+      return JsonResponse(data)
+    except Exception as e:
+      return JsonResponse( { 'status': 'Fail' })
+
+  else:
+    return render(request, 'index.html') 
+
+
+
+
 
 @login_required(login_url='/login/')
 def logout(request):
