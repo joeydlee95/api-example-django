@@ -53,7 +53,7 @@ class PatientView(LoginRequiredMixin, FormView):
                 return self.get(request)
 
             appointment_id = self.handle_appointment_id(request,
-                                                        patient.patient_id)
+                                                        patient)
             if not appointment_id:
                 return self.get(request)
 
@@ -71,10 +71,14 @@ class PatientView(LoginRequiredMixin, FormView):
             patient = None
         return patient
 
-    def handle_appointment_id(self, request, patient_id):
+    def handle_appointment_id(self, request, patient):
         try:
-            appointment_id = helper.get_appointment_id(request,
-                                                       str(patient_id))
+            #appointment_id = helper.get_appointment_id(request,
+                                                       #str(patient_id))
+            appointment = Appointment.objects.filter(is_archived=False,
+                                                     patient=patient,
+                                                     is_currently_seen=False, )
+            appointment_id = appointment[0].appointment_id
         except IndexError:
             appointment_id = None
 
@@ -176,7 +180,7 @@ class DoctorScheduleList(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         patient_clicked = request.POST.get('appointment_id')
-
+        print(patient_clicked)
         self.archive_currently_seeing()
 
         self.add_currently_seeing(patient_clicked)
@@ -190,17 +194,19 @@ class DoctorScheduleList(LoginRequiredMixin, View):
             appointment_entry.is_archived = True
             appointment_entry.save()
         except Appointment.DoesNotExist:
+            print("No currently seeing patient.")
             pass
 
     def add_currently_seeing(self, appointment_id):
         try:
             appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
             appointment_entry.is_currently_seen = True
-            # TODO: negative time delta
-            appointment_entry.wait_time = timezone.now() - appointment_entry.scheduled_time
+
+            appointment_entry.wait_time = timezone.now() - appointment_entry.checkin_time
             appointment_entry.save()
         except Appointment.DoesNotExist:
             pass
+            print("Failed to get Appointment")
 
 
 # TODO: create patients and flush them daily?

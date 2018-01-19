@@ -1,4 +1,4 @@
-function scheduleUpdate(url) {
+function scheduleUpdate(url, doctor_id) {
     $.ajax({
         type: "GET",
         url: url, // hardcoded
@@ -20,7 +20,7 @@ function scheduleUpdate(url) {
                 para3.appendChild(node3);
 
                 var para4 = document.createElement("p");
-                var node4 = document.createTextNode("Duration: " + data['appointments'][i]['duration']);
+                var node4 = document.createTextNode("Duration: " + data['appointments'][i]['duration'] + " minutes");
                 para4.appendChild(node4);
 
                 var para5 = document.createElement("p");
@@ -41,17 +41,19 @@ function scheduleUpdate(url) {
                     para6.appendChild(node6);
 
                     var para7 = document.createElement("p");
-                    var node7 = document.createTextNode("Wait Time: " + data['appointments'][i]['wait_time']);
+                    var node7 = document.createTextNode("Wait Time: " + data['appointments'][i]['wait_time'] + " minutes");
                     para7.appendChild(node7);
                     inside_div.appendChild(para6);
                     inside_div.appendChild(para7);
                 }
 
                 if (data['appointments'][i]['status'] == "Arrived") {
+                  appt_id = data['appointments'][i]['appointment_id'];
+                  patient_id = data['appointments'][i]['patient'];
                   var para8 = document.createElement("button");
-                  para8.onclick = function () {
-                    seePatient(data['appointments'][i]['id'], data['appointments'][i]['patient']);
-                  };
+                  para8.addEventListener( 'click', function(){
+                    seePatient(appt_id, patient_id, doctor_id);
+                  });
                   var node8 = document.createTextNode("See Now");
                   para8.appendChild(node8);
                   inside_div.appendChild(para8);
@@ -74,3 +76,54 @@ function averageWait(url) {
         }
     });
 }
+
+function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+}
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+function seePatient(id, full_name, doctor_id) {
+    var csrftoken = getCookie('csrftoken');
+    $.ajaxSetup({
+      beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              console.log(xhr);
+          }
+      }
+    });
+    var str = "Do you want to see " + full_name;
+    var r = confirm(str);
+    if (r == true) {
+      var url = "/schedule/" + doctor_id + "/";
+      $.ajax({
+         type: "POST",
+         url: url, // hardcoded
+         data: {
+                'operation': 'seePatient',
+                'appointment_id': id, // from form
+                },
+         success: function(){
+             document.getElementById("currently-seeing").innerHTML = "Seeing " + full_name;
+         }
+      });
+    }
+    else {
+      return;
+    }
+  }
