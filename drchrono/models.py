@@ -52,5 +52,14 @@ class Appointment(models.Model):
     if self.checkin_time:
       checkin_time = self.checkin_time.strftime("%Y-%m-%d %I:%M %p")
     else:
-      return ""
+      checkin_time = ""
+    return checkin_time
+
+  def get_wait_time(self):
+    if self.wait_time:
+      wait_time = self.wait_time
+    else:
+      wait_time = None
+    return wait_time
+
 

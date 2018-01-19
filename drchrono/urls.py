@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'^doctor/$', DoctorView.as_view(), name='doctor'),
     url(r'^schedule/(?P<doctor_id>\w+?)/$', DoctorScheduleList.as_view(), name='schedule'),
     url(r'^scheduleupdate/(?P<doctor_id>\w+?)/$', views.schedule_json, name='schedule_update'),
+    url(r'^averagewait/(?P<doctor_id>\w+?)/$', views.average_wait_time, name='average_wait'),
     url(r'^thanks/$', views.thanks, name='thanks'),
     url(r'^logout/$', views.logout, name='logout'),
     url(r'', include('social.apps.django_app.urls', namespace='social')),

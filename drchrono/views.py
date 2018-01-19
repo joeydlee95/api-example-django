@@ -357,7 +357,6 @@ def schedule_json(request, doctor_id):
       scheduled_time = appointment.get_readable_scheduled_time()
       checkin_time = appointment.get_readable_checkin_time()
 
-      print(checkin_time)
       temp_data = { 'appointment_id': appointment.appointment_id,
                     'scheduled_time' : scheduled_time, # need readable time
                     'exam_room': appointment.exam_room,
@@ -366,7 +365,14 @@ def schedule_json(request, doctor_id):
                     'checkin_time': checkin_time, # need readable time or none
                     'status' : appointment.status,
                     'is_currently_seen': appointment.is_currently_seen,
-                  };
+                  }
+
+      if temp_data['checkin_time']:
+        temp_wait_time = timezone.now() - appointment.checkin_time;
+        seconds = temp_wait_time.total_seconds()
+        minutes = seconds // 60
+        temp_data['wait_time'] = minutes;
+
       data['appointments'].append(temp_data)
 
     data['status'] = "Success"
@@ -378,6 +384,36 @@ def schedule_json(request, doctor_id):
   else:
     return render(request, 'index.html') 
 
+
+def average_wait_time(request, doctor_id):
+  if (request.is_ajax()):
+    data = {}
+    appointments = Appointment.objects.all().filter(is_archived=True,
+                                                    doctor_id=doctor_id,
+                                                    )
+    count = 0
+    total_wait_time = datetime.timedelta(0)
+    for appointment in appointments:
+      if appointment.get_wait_time():
+        count = count + 1
+        total_wait_time += appointment.get_wait_time()
+
+    if count == 0:
+      average_wait_time = 0
+    else:
+      average_wait_time = total_wait_time.total_seconds() // count
+      average_wait_time = average_wait_time // 60
+
+    data['wait_time'] = average_wait_time
+    data['status'] = "Success"
+    try:
+      print(data)
+      return JsonResponse(data)
+    except Exception as e:
+      return JsonResponse( {'status': 'Fail'})
+
+  else:
+    return render(request, 'index.html')
 
 
 

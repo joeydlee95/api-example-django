@@ -51,24 +51,6 @@
       }
     }
 
-    function updateSchedule() {
-      // Do ajax call to get this same webpage
-      // That will get the new updated appointment models
-      // sync those data with data on this 
-      // if status is active for one of them, have a timer if it is not currently seen
-      console.log("before ajax");
-      $.ajax({
-           type: "GET",
-           url: "{% url 'schedule_update' doctor_id=203468 %}",
-           success: function(data){
-               console.log('Succeed in js')
-               console.log(data['appointments'])
-           }
-      });
-      console.log("setting time out");
-      //setTimeOut(function(){updateSchedule()}, 30000);
-    };
-
     function startCount() {
       update()
     }
@@ -78,24 +60,37 @@
            type: "GET",
            url: "{% url 'schedule_update' doctor_id=203468 %}",
            success: function(data){
-              console.log(data['appointments'].length);
-              document.getElementById("schedule").innerHTML = "<div>";
+              document.getElementById("schedule").innerHTML = '<div class="container">';
               for (var i = 0; i < data['appointments'].length; i++) {
-                console.log(data['appointments'][i])
-                document.getElementById("schedule").innerHTML += "<div>";
-                // if status is arrived also include wait time
-                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['scheduled_time'] + "</p>";
-                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
-                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
-                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
-                //document.getElementById("schedule").innerHTML += "<p>" + data['appointments']['status'] + "</p>";
+                document.getElementById("schedule").innerHTML += "<div >";
+                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['patient'] + "</p>";
+                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['scheduled_time'] + "</p>";
+                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['exam_room'] + "</p>";
+                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['duration'] + "</p>";
+                document.getElementById("schedule").innerHTML += "<p>" + data['appointments'][i]['status'] + "</p>";
+
+                if (data['appointments'][i]['status'] == "Arrived" && data['appointments'][i]['checkin_time'] != "") {
+                  document.getElementById("schedule").innerHTML += "<p> Checked in: " + data['appointments'][i]['checkin_time'] + "</p>";
+                  document.getElementById("schedule").innerHTML += "<p> Wait Time: " + data['appointments'][i]['wait_time'] + " minutes</p>";
+                }
+
                 document.getElementById("schedule").innerHTML += "</div>";
               }
               document.getElementById("schedule").innerHTML += "</div>";
            }
       });
+      setTimeout(update, 60000);
     }
 
+    function averageWait() {
+      $.ajax({
+           type: "GET",
+           url: "{% url 'average_wait' doctor_id=203468 %}",
+           success: function(data){
+              document.getElementById("schedule").innerHTML = data['wait_time'];
+           }
+      });
+    }
     //var interval = 1000 * 60 * 1;
     //setInterval(update_call, interval)
   </script>
@@ -106,7 +101,8 @@
   <p>Hello Doctor!</p>
   <p id="currently-seeing"></p>
   <button onclick="startCount()">Start count!</button>
-
+  <button onclick="averageWait()">Average Wait Time</button>
+  <div id="averageWait"></div>
   <div id="schedule"></div>
   <!--<div id="sschedule">
     {% for appointment in appt_list %}
