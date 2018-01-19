@@ -168,11 +168,7 @@ class DoctorScheduleList(LoginRequiredMixin, ListView):
 
     def post(self, request, *args, **kwargs):
         patient_clicked = request.POST.get('appointment_id')
-        # before this there should be a javascript confirmation
-        # check if there is already a currently beeing seen patient
-        # if so, not currently seen anymore, archive them
 
-        # stop wait time and is currently seeing
         self.archive_currently_seeing()
 
         self.add_currently_seeing(patient_clicked)
@@ -242,7 +238,9 @@ class DailyUpdateView(LoginRequiredMixin, View):
                 if appointment['patient']:
                     try:
                         patient_entry = Patient.objects.get(patient_id=appointment['patient'])
+                        print("got patient, so skipping %s" % appointment['patient']) 
                     except Patient.DoesNotExist:
+                        print("patient does not exist, so creating %s" % appointment['patient'])
                         patient_id = appointment['patient']
                         self.add_patient_model(request, patient_id)
 
@@ -257,21 +255,28 @@ class DailyUpdateView(LoginRequiredMixin, View):
         first_name = patient['first_name']
         last_name = patient['last_name']
         patient_id = patient['id']
-        patient_entry = Patient.create(first_name=patient['first_name'],
-                                       last_name=patient['last_name'],
-                                       patient_id=patient['id'])
+        print("making %s" % str(patient_id))
+        patient_entry = Patient.objects.create(patient_id=patient['id'],
+                                       first_name=patient['first_name'],
+                                       last_name=patient['last_name'], )
         return patient_entry
 
     def setup_appointment_model(self, request, data):
         if data:
+            print("here")
             appointments = data
 
             for appointment in appointments:
                 # Break time is null
+                print("before appot")
                 if appointment['patient']:
+                    print("appt exists")
                     try:
+                        print("start of try")
                         appointment_entry = Appointment.objects.get(appointment_id=appointment['id'])
+
                     except Appointment.DoesNotExist:
+                        print("failed try")
                         self.add_appointment_model(request, appointment)
 
             return True
@@ -292,18 +297,18 @@ class DailyUpdateView(LoginRequiredMixin, View):
             patient = Patient.objects.get(patient_id=model_data['patient_id'])
         except Patient.DoesNotExist:
             print("This patient %s does not exist." % str(model_data['patient_id']))
+
         return self.commit_appointment_model(patient=patient, model_data=model_data)
 
     # True if committed, False if failed
     def commit_appointment_model(self, patient, model_data):
+        appointment_id = model_data['appointment_id']
         date_appointment = model_data['date_appointment']
         scheduled_time = model_data['scheduled_time']
         exam_room = model_data['exam_room']
         duration = model_data['duration']
         doctor_id = model_data['doctor_id']
-        patient_id = model_data['patient_id']
         status = model_data['status']
-        appointment_id = model_data['appointment_id']
 
         appointment_entry = Appointment.objects.create(appointment_id=appointment_id,
                                                        date_appointment=date_appointment,

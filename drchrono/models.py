@@ -14,6 +14,11 @@ class Patient(models.Model):
     last_name = models.CharField(max_length=MAX_NAME_LENGTH)
     # ssn = USSocialSecurityNumberField()
 
+    #@classmethod
+    #def create(cls, patient_id, first_name, last_name):
+    #    patient = cls(patient_id=patient_id, first_name=first_name, last_name=last_name)
+    #    return patient
+
     def __unicode__(self):
         return "%s %s" % (self.first_name, self.last_name)
 
