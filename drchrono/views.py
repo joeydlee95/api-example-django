@@ -180,12 +180,14 @@ class DoctorScheduleList(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         patient_clicked = request.POST.get('appointment_id')
-        print(patient_clicked)
-        self.archive_currently_seeing()
+        response = {}
 
-        self.add_currently_seeing(patient_clicked)
+        if self.archive_currently_seeing() and self.add_currently_seeing(patient_clicked):
+            response['status'] = 'success'
+        else:
+            response['status'] = 'fail'
 
-        return JsonResponse({'success': 'Product created'})
+        return JsonResponse(response)
 
     def archive_currently_seeing(self):
         try:
@@ -193,20 +195,25 @@ class DoctorScheduleList(LoginRequiredMixin, View):
             appointment_entry.is_currently_seen = False
             appointment_entry.is_archived = True
             appointment_entry.save()
+            ret_appointment = True
         except Appointment.DoesNotExist:
             print("No currently seeing patient.")
-            pass
+            ret_appointment = False
+        finally:
+            return ret_appointment
 
     def add_currently_seeing(self, appointment_id):
         try:
             appointment_entry = Appointment.objects.get(appointment_id=appointment_id)
             appointment_entry.is_currently_seen = True
-
             appointment_entry.wait_time = timezone.now() - appointment_entry.checkin_time
             appointment_entry.save()
+            ret_appointment = True
         except Appointment.DoesNotExist:
-            pass
             print("Failed to get Appointment")
+            ret_appointment = False
+        finally:
+            return ret_appointment
 
 
 # TODO: create patients and flush them daily?
